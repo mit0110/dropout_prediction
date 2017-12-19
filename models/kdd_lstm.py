@@ -79,8 +79,9 @@ class KDDCupLSTMModel(LSTMModel):
             A float64 tensor with the predictions, with shape [batch_size,].
         """
         predictions = tf.nn.softmax(logits)
-        return tf.squeeze(tf.slice(predictions, begin=[0, 1], size=[self.batch_size, 1],
-                        name='predictions'))
+        return tf.squeeze(tf.slice(predictions, begin=[0, 1],
+                                   size=[self.batch_size, 1],
+                          name='predictions'))
 
     def _build_evaluation(self, logits):
         """Evaluate the quality of the logits at predicting the label.
