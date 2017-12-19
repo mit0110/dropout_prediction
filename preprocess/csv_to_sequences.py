@@ -54,14 +54,24 @@ def main():
                          for f in input_filenames)
     sequences = pandas.concat(df_from_each_file, ignore_index=True)
     print('Processing {} sequences'.format(sequences.shape[0]))
-    encoder = LabelEncoder()
-    encoder.fit(EVENT_TYPE)
-    row_process = lambda x1, x2: [int(float(x1)), encoder.transform([x2])[0]]
+    event_encoder = LabelEncoder()
+    event_encoder.fit(EVENT_TYPE)
+
+    row_process = lambda x1, x2: [int(float(x1)),
+                                  event_encoder.transform([x2])[0]]
     sequences['sequence'] = sequences['sequence'].apply(
         lambda x: numpy.array([row_process(*x.split('-'))
                                for x in x.split(' ')], dtype=numpy.int32))
+
+    # Filter sequences by length
     sequences['len'] = sequences['sequence'].apply(lambda x: x.shape[0])
     sequences = sequences[sequences.len >= args.min_sequence_lenght]
+
+    module_id_encoder = LabelEncoder()
+    module_id_encoder.fit(numpy.concatenate(sequences.sequence.values)[:,0])
+    sequences['sequence'] = sequences['sequence'].apply(
+        lambda xarray: numpy.vstack([module_id_encoder.transform(xarray[:,0]),
+                                     xarray[:,1]]).T)
 
     partitions = train_test_split(
         sequences.sequence.values, sequences.label.values,
@@ -70,6 +80,10 @@ def main():
                                                        partitions[1].shape[0]))
     print('Saving sequences')
     utils.pickle_to_file(partitions, args.output_filename)
+    print('Saving encoder')
+    utils.pickle_to_file(
+        module_id_encoder,
+        '.'.join(args.output_filename.split('.')[:-1]) + '-encoder.p')
     print('All operations completed')
 
 
