@@ -46,6 +46,8 @@ class KDDCupDataset(SequenceDataset):
 
     @property
     def maximums(self):
+        """Returns the maximum value for a one hot encoding per instance column.
+        """
         if not hasattr(self, '_maximums'):
             self._maximums = numpy.max(
                 [instance.max(axis=0) for instance in self._instances], axis=0)
