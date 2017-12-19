@@ -17,15 +17,15 @@ class KDDCupLSTMModelTest(unittest.TestCase):
             numpy.array([numpy.array([x, x + 1])
                          for x in range(random.randint(3, 20))])
             for _ in range(num_examples)])
-        train_labels = (
-            numpy.random.random((num_examples,)) * 10).astype(numpy.int32)
+        train_labels = numpy.round(numpy.random.random(
+            (num_examples,))).astype(numpy.int32)
 
         test_instances = numpy.array([
             numpy.array([numpy.array([x, x + 1])
                          for x in range(random.randint(3, 20))])
             for _ in range(num_examples)])
-        test_labels = (
-            numpy.random.random((num_examples,)) * 10).astype(numpy.int32)
+        test_labels = numpy.round(numpy.random.random(
+            (num_examples,))).astype(numpy.int32)
 
         self.partition_sizes = {
             'train': 0.60, 'test': 0.25, 'validation': 0.15

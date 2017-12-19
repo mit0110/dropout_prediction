@@ -66,3 +66,56 @@ class KDDCupLSTMModel(LSTMModel):
             one_hot_columns.append(tf.one_hot(column, depth=column_max,
                                               on_value=1, off_value=0))
         return tf.squeeze(tf.concat(one_hot_columns, axis=-1))
+
+    def _build_predictions(self, logits):
+        """Return a tensor with the predicted performance of next exercise.
+
+        The prediction is a float in [0,1) with the probability of dropout.
+
+        Args:
+            logits: Tensor with unscaled logits, float - [batch_size, 2].
+
+        Returns:
+            A float64 tensor with the predictions, with shape [batch_size,].
+        """
+        predictions = tf.nn.softmax(logits)
+        return tf.squeeze(tf.slice(predictions, begin=[0, 1], size=[self.batch_size, 1],
+                        name='predictions'))
+
+    def _build_evaluation(self, logits):
+        """Evaluate the quality of the logits at predicting the label.
+
+        Args:
+            logits: Logits tensor, float - [batch_size, 2].
+        Returns:
+            The operations to get the evaluation metrics
+        """
+        predictions = self._build_predictions(logits)
+        # predictions has shape [batch_size, ]
+        with tf.name_scope('evaluation_performance'):
+            mse, mse_update = tf.contrib.metrics.streaming_mean_squared_error(
+                predictions,
+                tf.cast(self.labels_placeholder, predictions.dtype))
+
+        if self.logs_dirname:
+            tf.summary.scalar('eval_mse', mse)
+            tf.summary.scalar('eval_up_mse', mse_update)
+
+        return mse, mse_update
+
+    def evaluate(self, partition='validation'):
+        with self.graph.as_default():
+            # Reset the metric variables
+            stream_vars = [i for i in tf.local_variables()
+                           if i.name.split('/')[0] == 'evaluation_performance']
+            mse, mse_update = self.evaluation_op
+            self.dataset.reset_batch()
+            self.sess.run([tf.variables_initializer(stream_vars)])
+            feed_dict = self._fill_feed_dict(partition, reshuffle=False)
+            while feed_dict is not None:
+                feed_dict[self.dropout_placeholder] = 0
+                self.sess.run([mse_update], feed_dict=feed_dict)
+                feed_dict = self._fill_feed_dict(partition, reshuffle=False)
+            mse_value = self.sess.run([mse])[0]
+
+        return mse_value
