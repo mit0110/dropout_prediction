@@ -36,7 +36,7 @@ def parse_arguments():
                         help='Dropout for the input layer and the recurrent '
                              'layer.')
     parser.add_argument('--course_number', type=str,
-                        help='Number of the course to indentify predictions.')
+                        help='Number of the course to identify predictions.')
 
     return parser.parse_args()
 

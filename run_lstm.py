@@ -34,6 +34,8 @@ def parse_arguments():
     parser.add_argument('--dropout_ratio', type=float, default=0.3,
                         help='Dropout for the input layer and the recurrent '
                              'layer.')
+    parser.add_argument('--course_number', type=str,
+                        help='Number of the course to identify predictions.')
 
     return parser.parse_args()
 
@@ -79,8 +81,9 @@ def main():
         kddcup_dataset.set_current_sample(run)
         if args.base_logs_dirname:
             tf.reset_default_graph()
-            logs_dirname = os.path.join(args.base_logs_dirname,
-                                        'run{}'.format(run))
+            logs_dirname = os.path.join(
+                args.base_logs_dirname,
+                'c{}_run{}'.format(args.course_number, run))
             utils.safe_mkdir(logs_dirname)
             experiment_config['logs_dirname'] = logs_dirname
         model = KDDCupLSTMModel(kddcup_dataset, **experiment_config)
@@ -90,13 +93,15 @@ def main():
 
         predicted_labels = model.predict('test')
         prediction_dirname = os.path.join(
-            args.test_prediction_dir, 'predictions_run{}.p'.format(run))
+            args.test_prediction_dir,
+            'predictions_c{}_run{}.p'.format(args.course_number, run))
         utils.pickle_to_file(predicted_labels, prediction_dirname)
 
         utils.pickle_to_file(
             (model.training_performance, model.validation_performance),
-            os.path.join(args.test_prediction_dir,
-                         'performances_run{}.p'.format(run)))
+            os.path.join(
+                args.test_prediction_dir,
+                'performances_c{}_run{}.p'.format(args.course_number, run)))
 
     print('All operations finished')
 
