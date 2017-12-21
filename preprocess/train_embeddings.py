@@ -1,4 +1,9 @@
-"""Script to train word2vec models over sequences."""
+"""Script to train word2vec models over sequences.
+
+If gensim is not loading, try with
+LD_PRELOAD=~/miniconda3/envs/env_edm2/lib/libmkl_core.so:~/miniconda3/envs/env_edm2/lib/libmkl_sequential.so
+
+"""
 
 import argparse
 import os
@@ -21,27 +26,15 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def get_input_filenames(input_dirpath, extension):
-    """Returns the names of the files in input_dirpath that matches pattern."""
-    all_files = os.listdir(input_dirpath)
-    result = []
-    for filename in all_files:
-        if filename.endswith(extension) and os.path.isfile(os.path.join(
-                input_dirpath, filename)):
-            result.append(os.path.join(input_dirpath, filename))
-    return result
-
-
 def main():
     args = parse_arguments()
-    input_filenames = get_input_filenames(args.input_dirname,
-                                          extension='csv')
     with open(args.input_filename, 'rb') as sequence_file:
         raw_sequences = pickle.load(sequence_file)
 
     # Use only first and second elements
     sequences = numpy.concatenate(raw_sequences[0:2])
     print('Processing {} sequences'.format(sequences.shape[0]))
+    sequences = [numpy.squeeze(xarray[:,0]).astype(numpy.str).tolist() for xarray in sequences]
 
     model_config = {
         "size": args.embedding_size,
