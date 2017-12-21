@@ -45,6 +45,7 @@ def get_input_filenames(input_dirpath, extension):
 EVENT_TYPE = ["problem", "video", "access", "wiki", "discussion",
               "navigate", "page_close"]
 
+
 def main():
     args = parse_arguments()
     input_filenames = get_input_filenames(args.input_dirname,

@@ -3,8 +3,13 @@
 
 ## Tensorflow
 
-The models are tested with tensorflow 1.4
+The models are tested with tensorflow 1.4 and python 3.5
 
+## Gensim
+
+To install gensim, run:
+
+`$ conda install -c anaconda gensim`
 
 ## To run test
 
