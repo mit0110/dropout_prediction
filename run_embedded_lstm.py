@@ -100,7 +100,8 @@ def main():
             experiment_config['logs_dirname'] = logs_dirname
 
         model = KDDCupEmbeddedLSTMModel(kddcup_dataset, **experiment_config)
-        model.fit(partition_name='train', close_session=False)
+        model.fit(partition_name='train',
+                  training_epochs=args.training_epochs, close_session=False)
 
         predicted_labels = model.predict('test')
         prediction_dirname = os.path.join(
