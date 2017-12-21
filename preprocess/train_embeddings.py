@@ -3,15 +3,15 @@
 import argparse
 import os
 import numpy
-import pandas
+import pickle
 
 from gensim.models import Word2Vec
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_dirname', type=str,
-                        help='The path to the directory with the csv files.')
+    parser.add_argument('--input_filename', type=str,
+                        help='The path to the pickled file with sequences.')
     parser.add_argument('--output_filename', type=str,
                         help='The path to store the obtained model.')
     parser.add_argument('--embedding_size', type=int, default=100,
@@ -36,14 +36,12 @@ def main():
     args = parse_arguments()
     input_filenames = get_input_filenames(args.input_dirname,
                                           extension='csv')
-    print('Reading {} files'.format(len(input_filenames)))
-    df_from_each_file = (pandas.read_csv(f, header=0)
-                         for f in input_filenames)
-    sequences = pandas.concat(df_from_each_file, ignore_index=True)
-    print('Processing {} sequences'.format(sequences.shape[0]))
+    with open(args.input_filename, 'rb') as sequence_file:
+        raw_sequences = pickle.load(sequence_file)
 
-    sequences['sequence'] = sequences['sequence'].apply(
-        lambda xarray: numpy.squeeze(xarray[:, 0]))  # Only leave first column
+    # Use only first and second elements
+    sequences = numpy.concatenate(raw_sequences[0:2])
+    print('Processing {} sequences'.format(sequences.shape[0]))
 
     model_config = {
         "size": args.embedding_size,
@@ -59,7 +57,7 @@ def main():
     }
 
     print('Start fitting with config {}'.format(model_config))
-    model = Word2Vec(sequences.sequence.values, **model_config)
+    model = Word2Vec(sequences, **model_config)
     print('Saving model')
     model.save(args.output_filename)
     print('All iterations completed')
