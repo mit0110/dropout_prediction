@@ -24,17 +24,23 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         max_num_steps (int): the maximum number of steps to use during the
             Back Propagation Through Time optimization. The gradients are
             going to be clipped at max_num_steps.
+        dropout_ratio (float): the probability of dropout. It must range
+            between 0 and 1.
+        embedding_size (int): the number of units in the embedding layer.
+        embedding_model (gensim.models.Word2Vec): if not None, initialize the
+            embedding variable with the weights of the model.
     """
 
     def __init__(self, dataset, name=None, hidden_layer_size=0, batch_size=None,
                  logs_dirname='.', log_values=100, max_num_steps=100,
-                 dropout_ratio=0.3, embedding_size=100):
-        super(KDDCupLSTMModel, self).__init__(
+                 dropout_ratio=0.3, embedding_size=100, embedding_model=None):
+        super(KDDCupEmbeddedLSTMModel, self).__init__(
             dataset, batch_size=batch_size, logs_dirname=logs_dirname,
             name=name, log_values=log_values, dropout_ratio=dropout_ratio,
             hidden_layer_size=hidden_layer_size, max_num_steps=max_num_steps)
         self.embedding_size = embedding_size
         self.embedding_var = None
+        self.embedding_model = embedding_model
 
     def _build_inputs(self):
         """Generate placeholder variables to represent the input tensors."""
@@ -61,10 +67,32 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         """
         # The sequences must be padded with a negative value, so the one
         # hot encoder generates a zero vector.
-        self.embedding_var = tf.Variable(
-            tf.random_uniform([self.dataset.maximums + 1,
-                               self.embedding_size], 0, 1.0),
-            trainable=True, name='input_embedding_var')
+        if self.embedding_model is None:
+            self.embedding_var = tf.Variable(
+                tf.random_uniform([self.dataset.maximums + 1,
+                                   self.embedding_size], 0, 1.0),
+                trainable=True, name='input_embedding_var')
+        else:
+            import ipdb;ipdb.set_trace()
+            embedding_matrix = self.embedding_model.wv.syn0
+            # https://github.com/dennybritz/cnn-text-classification-tf/issues/17
+            self.embedding_placeholder = tf.placeholder_with_default(
+                embedding_matrix, shape=embedding_matrix.shape,
+                name='embedding_placeholder')
+            self.embedding_var = tf.Variable(tf.random_uniform(
+                embedding_matrix.shape, -1.0, 1.0),
+                name='input_embedding_var')
+            self.embedding_init = self.embedding_var.assign(
+                self.embedding_placeholder)
         return tf.nn.embedding_lookup(
             self.embedding_var, self.instances_placeholder,
             name='embedded_element_op')
+
+    def build_all(self):
+        super(KDDCupEmbeddedLSTMModel, self).build_all()
+        if self.embedding_model is not None:
+            with self.graph.as_default():
+                self.sess.run([self.embedding_init])
+
+
+
