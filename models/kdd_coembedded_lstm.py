@@ -49,13 +49,14 @@ class KDDCupCoEmbeddedLSTMModel(KDDCupEmbeddedLSTMModel):
     same as the hidden layer size.
     """
     def __init__(self, dataset, name=None, hidden_layer_size=0, batch_size=None,
-                 logs_dirname='.', log_values=True,
-                 max_num_steps=30, dropout_ratio=0.3):
+                 logs_dirname='.', log_values=True, max_num_steps=30,
+                 dropout_ratio=0.3, embedding_model=None):
         super(KDDCupCoEmbeddedLSTMModel, self).__init__(
             dataset, batch_size=batch_size,
             logs_dirname=logs_dirname, name=name, log_values=log_values,
             dropout_ratio=dropout_ratio, hidden_layer_size=hidden_layer_size,
-            max_num_steps=max_num_steps, embedding_size=hidden_layer_size)
+            max_num_steps=max_num_steps, embedding_size=hidden_layer_size,
+            embedding_model=embedding_model)
 
     def _build_rnn_cell(self):
         return EmbeddedBasicLSTMCell(self.hidden_layer_size, forget_bias=1.0)

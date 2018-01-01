@@ -34,7 +34,8 @@ def main():
     # Use only first and second elements
     sequences = numpy.concatenate(raw_sequences[0:2])
     print('Processing {} sequences'.format(sequences.shape[0]))
-    sequences = [numpy.squeeze(xarray[:,0]).astype(numpy.str).tolist() for xarray in sequences]
+    sequences = [numpy.squeeze(xarray[:, 0]).astype(numpy.str).tolist()
+                 for xarray in sequences]
 
     model_config = {
         "size": args.embedding_size,

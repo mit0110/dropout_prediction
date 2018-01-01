@@ -73,17 +73,23 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
                                    self.embedding_size], 0, 1.0),
                 trainable=True, name='input_embedding_var')
         else:
-            import ipdb;ipdb.set_trace()
             embedding_matrix = self.embedding_model.wv.syn0
             # https://github.com/dennybritz/cnn-text-classification-tf/issues/17
             self.embedding_placeholder = tf.placeholder_with_default(
                 embedding_matrix, shape=embedding_matrix.shape,
                 name='embedding_placeholder')
-            self.embedding_var = tf.Variable(tf.random_uniform(
+            embedding_var = tf.Variable(tf.random_uniform(
                 embedding_matrix.shape, -1.0, 1.0),
                 name='input_embedding_var')
-            self.embedding_init = self.embedding_var.assign(
+            self.embedding_init = embedding_var.assign(
                 self.embedding_placeholder)
+            # We add the embedding for the zero element, which SHOULD be the
+            # padding element, and the embedding for the OOV element.
+            self.embedding_var = tf.concat([
+                tf.zeros([1, self.embedding_size]),
+                embedding_var,
+                tf.random_uniform([1, self.embedding_size], -1.0, 1.0)
+            ], 0)
         return tf.nn.embedding_lookup(
             self.embedding_var, self.instances_placeholder,
             name='embedded_element_op')

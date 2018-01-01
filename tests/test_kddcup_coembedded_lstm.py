@@ -3,6 +3,7 @@ import random
 import tensorflow as tf
 import unittest
 
+from gensim.models import Word2Vec
 from kddcup_dataset import KDDCupDataset
 from models.kdd_coembedded_lstm import KDDCupCoEmbeddedLSTMModel
 
@@ -26,11 +27,8 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
         self.partition_sizes = {
             'train': 0.60, 'test': 1, 'validation': 0.15
         }
-        self.dataset = KDDCupDataset()
-        self.dataset.create_fixed_samples(
-            train_instances, train_labels, test_instances, test_labels,
-            samples_num=1, partition_sizes=self.partition_sizes)
-        self.dataset.set_current_sample(0)
+
+        self.data = train_instances, train_labels, test_instances, test_labels
         self.model_arguments = {
             'hidden_layer_size': 50, 'batch_size': 20, 'logs_dirname': None,
             'log_values': 0, 'max_num_steps': 25}
@@ -38,16 +36,24 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
     def test_build_network(self):
         """Test if the LSTMModel is correctly built."""
         # Check build does not raise errors
-        model = KDDCupCoEmbeddedLSTMModel(self.dataset, **self.model_arguments)
+        dataset = KDDCupDataset()
+        dataset.create_fixed_samples(
+            *self.data, samples_num=1, partition_sizes=self.partition_sizes)
+        dataset.set_current_sample(0)
+        model = KDDCupCoEmbeddedLSTMModel(dataset, **self.model_arguments)
         model.fit(close_session=True, training_epochs=50)
 
     def test_predict(self):
         """Test if the LSTMModel returns consistent predictions."""
         # Check build does not raise errors
-        model = KDDCupCoEmbeddedLSTMModel(self.dataset, **self.model_arguments)
+        dataset = KDDCupDataset()
+        dataset.create_fixed_samples(
+            *self.data, samples_num=1, partition_sizes=self.partition_sizes)
+        dataset.set_current_sample(0)
+        model = KDDCupCoEmbeddedLSTMModel(dataset, **self.model_arguments)
         model.fit(training_epochs=50)
         true, predictions = model.predict('test')
-        expected_size = ((self.dataset.num_examples('test') //
+        expected_size = ((dataset.num_examples('test') //
                           model.batch_size) * model.batch_size)
         self.assertEqual(true.shape[0], expected_size)
         self.assertEqual(true.shape, predictions.shape)
@@ -55,11 +61,42 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
     def test_evaluate(self):
         """Test if the LSTMModel returns a valid accuracy value."""
         # Check build does not raise errors
-        model = KDDCupCoEmbeddedLSTMModel(self.dataset, **self.model_arguments)
+        dataset = KDDCupDataset()
+        dataset.create_fixed_samples(
+            *self.data, samples_num=1, partition_sizes=self.partition_sizes)
+        dataset.set_current_sample(0)
+        model = KDDCupCoEmbeddedLSTMModel(dataset, **self.model_arguments)
         model.fit(training_epochs=50)
         metric = model.evaluate('test')
         self.assertLessEqual(0, metric)
         self.assertGreaterEqual(1, metric)
+
+    def test_build_with_embeddings(self):
+        """Test if the LSTMModel is correctly built."""
+        # Train a very small model
+        dataset = KDDCupDataset()
+        dataset.create_fixed_samples(
+            *self.data, samples_num=1, partition_sizes=self.partition_sizes)
+        dataset.set_current_sample(0)
+        sentences = [[str(x) for x in numpy.arange(random.randint(3, 20))]
+                     for _ in range(25)]
+        embedding_model = Word2Vec(
+            sentences=sentences, size=self.model_arguments['hidden_layer_size'],
+            iter=5)
+        dataset = KDDCupDataset(embedding_model=embedding_model)
+        dataset.create_fixed_samples(
+            *self.data, samples_num=1, partition_sizes=self.partition_sizes)
+        dataset.set_current_sample(0)
+        # Check build does not raise errors
+        model = KDDCupCoEmbeddedLSTMModel(
+            dataset, embedding_model=embedding_model,
+            **self.model_arguments)
+        model.build_all()
+        resulting_embeddings = model.sess.run(model.embedding_var)
+        numpy.testing.assert_array_equal(resulting_embeddings[1:-1],
+                                         embedding_model.wv.syn0)
+        model.fit(training_epochs=50)
+
 
 if __name__ == '__main__':
     unittest.main()
