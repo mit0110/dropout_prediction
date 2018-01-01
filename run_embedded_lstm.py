@@ -3,6 +3,7 @@ import numpy
 import os
 import tensorflow as tf
 
+from gensim.models import Word2Vec
 from kddcup_dataset import KDDCupDataset
 from quick_experiment import utils
 from models.kdd_embedded_lstm import KDDCupEmbeddedLSTMModel
@@ -37,6 +38,9 @@ def parse_arguments():
                              'layer.')
     parser.add_argument('--embedding_size', type=int, default=100,
                         help='Number of units in the embedding layer.')
+    parser.add_argument('--embedding_model', type=str, default=None,
+                        help='Path to word2vec model to use as pretrained '
+                             'embeddings.')
     parser.add_argument('--course_number', type=str,
                         help='Number of the course to identify predictions.')
 
@@ -65,6 +69,12 @@ def transform_input(train_sequences, test_sequences):
     )
 
 
+def read_embedding_model(model_path):
+    if model_path is None:
+        return None
+    return Word2Vec.load(model_path)
+
+
 def main():
     args = parse_arguments()
     experiment_config, partitions = read_configuration(args)
@@ -75,7 +85,8 @@ def main():
     train_sequences, test_sequences = transform_input(train_sequences,
                                                       test_sequences)
     print('Creating samples')
-    kddcup_dataset = KDDCupDataset()
+    embedding_model = read_embedding_model(args.embedding_model)
+    kddcup_dataset = KDDCupDataset(embedding_model=embedding_model)
     kddcup_dataset.create_fixed_samples(
         train_sequences, train_labels, test_sequences, test_labels,
         partition_sizes=partitions, samples_num=args.runs)
@@ -102,7 +113,10 @@ def main():
             utils.safe_mkdir(logs_dirname)
             experiment_config['logs_dirname'] = logs_dirname
 
-        model = KDDCupEmbeddedLSTMModel(kddcup_dataset, **experiment_config)
+        model = KDDCupEmbeddedLSTMModel(
+            kddcup_dataset, embedding_model=embedding_model,
+            **experiment_config)
+
         model.fit(partition_name='train',
                   training_epochs=args.training_epochs, close_session=False)
 

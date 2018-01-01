@@ -99,6 +99,3 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         if self.embedding_model is not None:
             with self.graph.as_default():
                 self.sess.run([self.embedding_init])
-
-
-
