@@ -1,3 +1,24 @@
+"""Script to extract evaluation instances for recommendation.
+
+The evaluation instances are taken from the test sequences.
+
+Each instance is an group of ngrams that:
+  * share the same prefix. The size of the prefix varies from 2 to n-1.
+  * occurs in more than min_freq sequences
+
+The output of the script, if output_filename is provided, is a pickled dict
+mapping from each prefix to the suffixes and instances where they occur.
+
+{
+    prefix [tuple]: {
+        suffix [tuple]: (
+            instances [list of numpy_arrays]
+            labels [list of ints]
+        )
+    }
+}
+"""
+import numpy
 import argparse
 import sys
 
@@ -41,9 +62,9 @@ def get_evaluation_ngrams(MIN_FREQ, ngram_positions, suffix_size=1):
         if len(indices) < MIN_FREQ:
             continue
         evaluation_ngrams[ngram[:-suffix_size]].append(ngram[-suffix_size:])
-    filtered_evaluation = {prefix: sufixes
-                           for prefix, sufixes in evaluation_ngrams.items()
-                           if len(sufixes) >= 2}
+    filtered_evaluation = {prefix: suffixes
+                           for prefix, suffixes in evaluation_ngrams.items()
+                           if len(suffixes) >= 2}
     return filtered_evaluation
 
 
@@ -55,11 +76,15 @@ def get_instances(filtered_ngrams, labels, ngram_positions, sequences):
             # https://stackoverflow.com/questions/835092/
             # python-dictionary-are-keys-and-values-always-the-same-order
             lengths = [x for x in ngram_positions[ngram].values()]
-            instances_indices = [x for x in ngram_positions[ngram].keys()]
-            evaluation_instances[prefix][sufix] = (sequences[instances_indices],
-                                                   lengths,
-                                                   labels[instances_indices])
-            assert len(sequences[instances_indices]) == len(lengths)
+            instances = []
+            instances_labels = []
+            for index, length in ngram_positions[ngram].items():
+                instance = sequences[index][:length + len(prefix)]
+                assert numpy.array_equal(instance[-len(prefix):], prefix)
+                instances.append(instance)
+                instances_labels.append(index)
+            evaluation_instances[prefix][sufix] = (instances, instances_labels)
+            assert len(sequences[instances]) == len(instances_labels)
     return evaluation_instances
 
 
@@ -77,8 +102,8 @@ def get_suffixes(N, labels, min_freq, sequences):
         print('Prefixes found: {}'.format(len(evaluation_instances)))
         print('Total instances found: {}'.format(sum(
             [instances[0].shape[0]
-             for sufixes_dict in evaluation_instances.values()
-             for instances in sufixes_dict.values()]
+             for suffixes_dict in evaluation_instances.values()
+             for instances in suffixes_dict.values()]
         )))
         sufixes_dict[suffix_size] = evaluation_instances
     return sufixes_dict
