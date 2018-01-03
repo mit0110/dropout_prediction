@@ -28,6 +28,9 @@ def parse_arguments():
     parser.add_argument('--min_sequence_lenght', type=int, default=1,
                         help='Only include sequences with lenght grater than'
                              'this.')
+    parser.add_argument('--merge', action='store_true',
+                        help='Merge the module id with the action type to'
+                             'create the vectorizer.')
     return parser.parse_args()
 
 
@@ -58,11 +61,12 @@ def main():
     event_encoder = LabelEncoder()
     event_encoder.fit(EVENT_TYPE)
 
-    row_process = lambda x1, x2: [int(float(x1)),
-                                  event_encoder.transform([x2])[0]]
+    if not args.merge:
+        row_process = lambda x: [x, x.split('-')[1]]
+    else:
+        row_process = lambda x: x.split('-')
     sequences['sequence'] = sequences['sequence'].apply(
-        lambda x: numpy.array([row_process(*x.split('-'))
-                               for x in x.split(' ')], dtype=numpy.int32))
+        lambda x: numpy.array([row_process(word) for word in x.split(' ')]))
 
     # Filter sequences by length
     sequences['len'] = sequences['sequence'].apply(lambda x: x.shape[0])
@@ -72,7 +76,7 @@ def main():
     module_id_encoder.fit(numpy.concatenate(sequences.sequence.values)[:,0])
     sequences['sequence'] = sequences['sequence'].apply(
         lambda xarray: numpy.vstack([module_id_encoder.transform(xarray[:,0]),
-                                     xarray[:,1]]).T)
+                                     event_encoder.transform(xarray[:,1])]).T)
 
     partitions = train_test_split(
         sequences.sequence.values, sequences.label.values,
