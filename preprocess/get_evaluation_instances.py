@@ -1,0 +1,109 @@
+import argparse
+import sys
+
+sys.path.append('./')
+
+from collections import defaultdict
+from quick_experiment import utils
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input_filename', type=str,
+                        help='The path to the pickled file with the processed'
+                             'sequences.')
+    parser.add_argument('--output_filename', type=str, default=None,
+                        help='The path to the file to store the evaluation '
+                             'instances')
+    parser.add_argument('--explore', action='store_true',
+                        help='Explore different combinations and print obtained'
+                             'sizes.')
+    parser.add_argument('--N', type=int, default=3,
+                        help='The size of the ngrams.')
+    parser.add_argument('--min_freq', type=int, default=5,
+                        help='The minimum frequency for an instance.')
+    
+    return parser.parse_args()
+
+
+def get_ngram_positions(N, sequences):
+    ngram_positions = defaultdict(dict)
+    for index, sequence in enumerate(sequences):
+        for i in range(len(sequence) - N + 1):
+            ngram = tuple(sequence[i: i + N][:, 0].tolist())
+            ngram_positions[ngram][index] = i
+    return ngram_positions
+
+
+def get_evaluation_ngrams(MIN_FREQ, ngram_positions, suffix_size=1):
+    evaluation_ngrams = defaultdict(list)
+    for ngram, indices in ngram_positions.items():
+        if len(indices) < MIN_FREQ:
+            continue
+        evaluation_ngrams[ngram[:-suffix_size]].append(ngram[-suffix_size:])
+    filtered_evaluation = {prefix: sufixes
+                           for prefix, sufixes in evaluation_ngrams.items()
+                           if len(sufixes) >= 2}
+    return filtered_evaluation
+
+
+def get_instances(filtered_ngrams, labels, ngram_positions, sequences):
+    evaluation_instances = defaultdict(dict)
+    for prefix, sufixes in filtered_ngrams.items():
+        for sufix in sufixes:
+            ngram = prefix + sufix
+            # https://stackoverflow.com/questions/835092/
+            # python-dictionary-are-keys-and-values-always-the-same-order
+            lengths = [x for x in ngram_positions[ngram].values()]
+            instances_indices = [x for x in ngram_positions[ngram].keys()]
+            evaluation_instances[prefix][sufix] = (sequences[instances_indices],
+                                                   lengths,
+                                                   labels[instances_indices])
+            assert len(sequences[instances_indices]) == len(lengths)
+    return evaluation_instances
+
+
+def get_suffixes(N, labels, min_freq, sequences):
+    sufixes_dict = {}
+    for suffix_size in range(1, N - 1):
+        ngram_positions = get_ngram_positions(N, sequences)
+        filtered_ngrams = get_evaluation_ngrams(
+            min_freq, ngram_positions, suffix_size)
+
+        evaluation_instances = get_instances(filtered_ngrams, labels,
+                                             ngram_positions, sequences)
+        print('min_freq {} / N {} / suffix_size {}'.format(
+            min_freq, N, suffix_size))
+        print('Prefixes found: {}'.format(len(evaluation_instances)))
+        print('Total instances found: {}'.format(sum(
+            [instances[0].shape[0]
+             for sufixes_dict in evaluation_instances.values()
+             for instances in sufixes_dict.values()]
+        )))
+        sufixes_dict[suffix_size] = evaluation_instances
+    return sufixes_dict
+
+
+def main():
+    args = parse_arguments()
+    raw_sequences = utils.pickle_from_file(args.input_filename)
+    sequences = raw_sequences[1]
+    labels = raw_sequences[3]
+
+    if args.explore:
+        for min_freq in [3, 5, 10]:
+            for N in range(3, 6):
+                get_suffixes(
+                    N, labels, min_freq, sequences)
+    else:
+        evaluation_instances = get_suffixes(
+            args.N, labels, args.min_freq, sequences)
+        if args.output_filename is not None:
+            utils.pickle_to_file(evaluation_instances,
+                                 args.output_filename)
+    print('All operations completed')
+
+
+if __name__ == '__main__':
+    main()
+
