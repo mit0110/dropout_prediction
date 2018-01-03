@@ -85,7 +85,6 @@ def main():
     train_sequences, test_sequences = transform_input(train_sequences,
                                                       test_sequences)
     print('Creating samples')
-    print(args.embedding_model)
     embedding_model = read_embedding_model(args.embedding_model)
     kddcup_dataset = KDDCupDataset(embedding_model=embedding_model)
     kddcup_dataset.create_fixed_samples(
@@ -98,6 +97,8 @@ def main():
     print(partitions)
     print('Experiment Configuration')
     print(experiment_config)
+    print('Pretrained embedding model')
+    print(args.embedding_model)
 
     if args.base_logs_dirname:
         utils.safe_mkdir(args.base_logs_dirname)
