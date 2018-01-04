@@ -86,9 +86,10 @@ def main():
     print('Saving sequences')
     utils.pickle_to_file(partitions, args.output_filename)
     print('Saving encoder')
+    merged = '-merged' if args.merge else ''
     utils.pickle_to_file(
         module_id_encoder,
-        '.'.join(args.output_filename.split('.')[:-1]) + '-encoder.p')
+        '.'.join(args.output_filename.split('.')[:-1]) + merged + '-encoder.p')
     print('All operations completed')
 
 
