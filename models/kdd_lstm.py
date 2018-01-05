@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from quick_experiment.models.lstm import LSTMModel
+from quick_experiment.models.lstm_tbptt import TruncLSTMModel
 
 
 class KDDCupLSTMModel(LSTMModel):
@@ -93,6 +94,30 @@ class KDDCupLSTMModel(LSTMModel):
             tf.summary.scalar('eval_up_mse', mse_update)
 
         return mse, mse_update
+
+
+class TruncKDDCupLSTMModel(KDDCupLSTMModel, TruncLSTMModel):
+    """A Recurrent Neural Network model with LSTM cells.
+
+    Predicts a single output for a sequence.
+
+    The inputs are expected to be of type int. Each column will be converted
+    to a one hot encoding.
+
+    Args:
+        dataset (:obj: SequenceDataset): An instance of KDDCupDataset (or
+            subclass). The dataset MUST have partition called validation.
+        hidden_layer_size (int): The size of the hidden layer of the network.
+        batch_size (int): The maximum size of elements to input into the model.
+            It will also be used to generate batches from the dataset.
+        logs_dirname (string): Name of directory to save internal information
+            for tensorboard visualization. If None, no records will be saved
+        log_values (int): Number of steps to wait before logging the progress
+            of the training in console. If 0, no logs will be generated.
+        max_num_steps (int): the maximum number of steps to use during the
+            Back Propagation Through Time optimization. The gradients are
+            going to be clipped at max_num_steps.
+    """
 
     def evaluate(self, partition='validation'):
         old_start = self.dataset.reset_batch(partition)

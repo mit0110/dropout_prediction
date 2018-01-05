@@ -4,10 +4,13 @@ import tensorflow as tf
 import unittest
 
 from kddcup_dataset import KDDCupDataset
-from models.kdd_lstm import KDDCupLSTMModel
+from models.kdd_lstm import KDDCupLSTMModel, TruncKDDCupLSTMModel
 
 
 class KDDCupLSTMModelTest(unittest.TestCase):
+
+    MODEL_TO_TEST = KDDCupLSTMModel
+
     def setUp(self):
         tf.reset_default_graph()
         num_examples = 100
@@ -42,13 +45,13 @@ class KDDCupLSTMModelTest(unittest.TestCase):
     def test_build_network(self):
         """Test if the LSTMModel is correctly built."""
         # Check build does not raise errors
-        model = KDDCupLSTMModel(self.dataset, **self.model_arguments)
+        model = self.MODEL_TO_TEST(self.dataset, **self.model_arguments)
         model.fit(close_session=True)
 
     def test_predict(self):
         """Test if the LSTMModel returns consistent predictions."""
         # Check build does not raise errors
-        model = KDDCupLSTMModel(self.dataset, **self.model_arguments)
+        model = self.MODEL_TO_TEST(self.dataset, **self.model_arguments)
         model.fit()
         true, predictions = model.predict('test')
         self.assertEqual(true.shape[0], self.dataset.num_examples('test'))
@@ -57,11 +60,16 @@ class KDDCupLSTMModelTest(unittest.TestCase):
     def test_evaluate(self):
         """Test if the LSTMModel returns a valid rmse value."""
         # Check build does not raise errors
-        model = KDDCupLSTMModel(self.dataset, **self.model_arguments)
+        model = self.MODEL_TO_TEST(self.dataset, **self.model_arguments)
         model.fit()
         metric = model.evaluate('test')
         self.assertLessEqual(0, metric)
         self.assertGreaterEqual(1, metric)
+
+
+class TruncKDDCupLSTMModelTest(KDDCupLSTMModelTest):
+    MODEL_TO_TEST = TruncKDDCupLSTMModel
+
 
 if __name__ == '__main__':
     unittest.main()
