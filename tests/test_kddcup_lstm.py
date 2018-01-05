@@ -51,13 +51,11 @@ class KDDCupLSTMModelTest(unittest.TestCase):
         model = KDDCupLSTMModel(self.dataset, **self.model_arguments)
         model.fit()
         true, predictions = model.predict('test')
-        expected_size = ((self.dataset.num_examples('test') //
-                          model.batch_size) * model.batch_size)
-        self.assertEqual(true.shape[0], expected_size)
+        self.assertEqual(true.shape[0], self.dataset.num_examples('test'))
         self.assertEqual(true.shape, predictions.shape)
 
     def test_evaluate(self):
-        """Test if the LSTMModel returns a valid accuracy value."""
+        """Test if the LSTMModel returns a valid rmse value."""
         # Check build does not raise errors
         model = KDDCupLSTMModel(self.dataset, **self.model_arguments)
         model.fit()

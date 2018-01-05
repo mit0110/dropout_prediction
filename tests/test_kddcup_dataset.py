@@ -22,7 +22,7 @@ class KDDCupDatasetTest(unittest.TestCase):
             numpy.random.random((num_examples,)) * 10).astype(numpy.int16)
 
         self.test_instances = [
-            numpy.array([[x*20, x*20+1] for x in range(sequence_length)])
+            numpy.array([[x*20, x*20+1] for x in range(1, sequence_length)])
             for sequence_length in random.sample(k=num_examples,
                                                  population=range(3, 20))]
         self.test_instances = numpy.array(
@@ -45,9 +45,9 @@ class KDDCupDatasetTest(unittest.TestCase):
         dataset.set_current_sample(0)
         while dataset.has_next_batch(5, partition_name='test'):
             batch, labels, lengths = dataset.next_batch(
-                batch_size=5, partition_name='train')
+                batch_size=5, partition_name='test', reshuffle=False)
             for instance in batch:
-                self.assertGreaterEqual(instance[instance.nonzero()].min(), 60)
+                self.assertGreaterEqual(instance[instance.nonzero()].min(), 20)
 
         self.assertEqual(
             dataset.num_examples('test'),
@@ -64,13 +64,13 @@ class KDDCupDatasetTest(unittest.TestCase):
         dataset.set_current_sample(0)
         while dataset.has_next_batch(5, partition_name='train'):
             batch, labels, lengths = dataset.next_batch(
-                batch_size=5, partition_name='train')
+                batch_size=5, partition_name='train', reshuffle=False)
             for instance in batch:
                 self.assertLessEqual(instance.max(), 22)
 
         while dataset.has_next_batch(5, partition_name='validation'):
             batch, labels, lengths = dataset.next_batch(
-                batch_size=5, partition_name='validation')
+                batch_size=5, partition_name='validation', reshuffle=False)
             for instance in batch:
                 self.assertLessEqual(instance.max(), 22)
 
@@ -83,7 +83,6 @@ class KDDCupDatasetTest(unittest.TestCase):
         # The embedding model has out-of-vocabulary words
         embedding_model = Word2Vec(
             sentences=sentences, size=10, iter=5)
-        vocab = embedding_model.wv.index2word
         dataset = KDDCupDataset(embedding_model=embedding_model)
         dataset.create_fixed_samples(
             self.train_instances, self.train_labels,
@@ -94,7 +93,7 @@ class KDDCupDatasetTest(unittest.TestCase):
         while dataset.has_next_batch(5, partition_name='train'):
             batch, labels, lengths = dataset.next_batch(
                 batch_size=5, partition_name='train', pad_sequences=True,
-                step_size=step_size)
+                step_size=step_size, reshuffle=False)
             for instance, length in zip(batch, lengths):
                 self.assertLessEqual(instance.max(), max_word + 1)  # OOV word
                 self.assertEqual(instance.shape[0] % step_size, 0)

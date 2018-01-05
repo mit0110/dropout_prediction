@@ -46,18 +46,33 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         """Generate placeholder variables to represent the input tensors."""
         # Placeholder for the inputs in a given iteration.
         self.instances_placeholder = tf.placeholder(
-            tf.int32, (self.batch_size, self.max_num_steps),
+            tf.int32, (None, self.max_num_steps),
             name='sequences_placeholder')
 
         self.lengths_placeholder = tf.placeholder(
-            tf.int32, (self.batch_size, ), name='lengths_placeholder')
+            tf.int32, (None, ), name='lengths_placeholder')
 
         self.labels_placeholder = tf.placeholder(
-            self.dataset.labels_type, (self.batch_size, ),
+            self.dataset.labels_type, (None, ),
             name='labels_placeholder')
 
         self.dropout_placeholder = tf.placeholder_with_default(
             0.0, shape=(), name='dropout_placeholder')
+
+    def _pad_batch(self, input_tensor):
+        self.current_batch_size = tf.shape(input_tensor)[0]
+        new_instances = tf.subtract(self.batch_size, tf.shape(input_tensor)[0])
+        # Pad lenghts
+        self.batch_lengths = tf.pad(self.lengths_placeholder,
+                                    paddings=[[tf.constant(0), new_instances]],
+                                    mode='CONSTANT')
+        # Pad instances
+        paddings = [[tf.constant(0), new_instances], tf.constant([0, 0])]
+        input_tensor = tf.pad(input_tensor, paddings=paddings, mode='CONSTANT')
+        # Ensure the correct shape. This is only to avoid an error with the
+        # dynamic_rnn, which needs to know the size of the batch.
+        return tf.reshape(
+            input_tensor, shape=(self.batch_size, self.max_num_steps))
 
     def _build_input_layers(self):
         """Converts the instances_placeholder to an embedding.
@@ -90,9 +105,9 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
                 embedding_var,
                 tf.random_uniform([1, self.embedding_size], -1.0, 1.0)
             ], 0)
-        return tf.nn.embedding_lookup(
-            self.embedding_var, self.instances_placeholder,
-            name='embedded_element_op')
+        input_tensor = self._pad_batch(self.instances_placeholder)
+        return tf.nn.embedding_lookup(self.embedding_var, input_tensor,
+                                      name='embedded_element_op')
 
     def build_all(self):
         super(KDDCupEmbeddedLSTMModel, self).build_all()
