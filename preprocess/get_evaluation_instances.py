@@ -43,7 +43,7 @@ def parse_arguments():
                         help='The size of the ngrams.')
     parser.add_argument('--min_freq', type=int, default=5,
                         help='The minimum frequency for an instance.')
-    
+
     return parser.parse_args()
 
 
@@ -80,11 +80,11 @@ def get_instances(filtered_ngrams, labels, ngram_positions, sequences):
             instances_labels = []
             for index, length in ngram_positions[ngram].items():
                 instance = sequences[index][:length + len(prefix)]
-                assert numpy.array_equal(instance[-len(prefix):], prefix)
+                assert numpy.array_equal(instance[-len(prefix):, 0], prefix)
                 instances.append(instance)
                 instances_labels.append(index)
             evaluation_instances[prefix][sufix] = (instances, instances_labels)
-            assert len(sequences[instances]) == len(instances_labels)
+            assert len(instances) == len(instances_labels)
     return evaluation_instances
 
 
@@ -101,7 +101,7 @@ def get_suffixes(N, labels, min_freq, sequences):
             min_freq, N, suffix_size))
         print('Prefixes found: {}'.format(len(evaluation_instances)))
         print('Total instances found: {}'.format(sum(
-            [instances[0].shape[0]
+            [len(instances[0]))
              for suffixes_dict in evaluation_instances.values()
              for instances in suffixes_dict.values()]
         )))
