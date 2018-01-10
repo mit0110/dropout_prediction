@@ -81,7 +81,6 @@ class KDDCupDataset(SequenceDataset):
         if 'test' in partition_sizes:
             test_indices = numpy.arange(self._test_start,
                                         self._instances.shape[0])
-            numpy.random.shuffle(test_indices)
             total_instances = partition_sizes['test'] * test_indices.shape[0]
             sample_index['test'] = test_indices[:int(total_instances)]
 

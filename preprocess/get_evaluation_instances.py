@@ -82,7 +82,7 @@ def get_instances(filtered_ngrams, labels, ngram_positions, sequences):
                 instance = sequences[index][:length + len(prefix)]
                 assert numpy.array_equal(instance[-len(prefix):, 0], prefix)
                 instances.append(instance)
-                instances_labels.append(index)
+                instances_labels.append(labels[index])
             evaluation_instances[prefix][sufix] = (instances, instances_labels)
             assert len(instances) == len(instances_labels)
     return evaluation_instances
@@ -101,7 +101,7 @@ def get_suffixes(N, labels, min_freq, sequences):
             min_freq, N, suffix_size))
         print('Prefixes found: {}'.format(len(evaluation_instances)))
         print('Total instances found: {}'.format(sum(
-            [len(instances[0]))
+            [len(instances[0])
              for suffixes_dict in evaluation_instances.values()
              for instances in suffixes_dict.values()]
         )))
@@ -109,22 +109,34 @@ def get_suffixes(N, labels, min_freq, sequences):
     return sufixes_dict
 
 
+def get_possible_ngrams(sequences, min_n, max_n):
+    all_ngrams = {}
+    for size in range(min_n, max_n + 1):
+        ngrams = get_ngram_positions(size, sequences)
+        all_ngrams[size] = [ngram for ngram, occurrences in ngrams.items()
+                            if len(occurrences) >= size]
+        print('Suffixes with size {}: {}'.format(size, len(all_ngrams[size])))
+    return all_ngrams
+
+
 def main():
     args = parse_arguments()
     raw_sequences = utils.pickle_from_file(args.input_filename)
-    sequences = raw_sequences[1]
-    labels = raw_sequences[3]
+    test_sequences = raw_sequences[1]
+    test_labels = raw_sequences[3]
 
     if args.explore:
         for min_freq in [3, 5, 10]:
             for N in range(3, 6):
                 get_suffixes(
-                    N, labels, min_freq, sequences)
+                    N, test_labels, min_freq, test_sequences)
     else:
+        train_sequences = raw_sequences[0]
+        possible_suffixes = get_possible_ngrams(train_sequences, 1, args.N - 1)
         evaluation_instances = get_suffixes(
-            args.N, labels, args.min_freq, sequences)
+            args.N, test_labels, args.min_freq, test_sequences)
         if args.output_filename is not None:
-            utils.pickle_to_file(evaluation_instances,
+            utils.pickle_to_file([possible_suffixes, evaluation_instances],
                                  args.output_filename)
     print('All operations completed')
 
