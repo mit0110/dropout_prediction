@@ -42,6 +42,32 @@ class KDDCupEmbeddedLSTMModelTest(unittest.TestCase):
         model = KDDCupEmbeddedLSTMModel(dataset, **self.model_arguments)
         model.fit(close_session=True, training_epochs=50)
 
+    def test_build_network_no_finetuning(self):
+        """Test if the LSTMModel is correctly built."""
+        # Check build does not raise errors
+        sentences = [[str(x) for x in numpy.arange(random.randint(3, 20))]
+                     for _ in range(25)]
+        embedding_model = Word2Vec(
+            sentences=sentences, size=self.model_arguments['embedding_size'],
+            iter=5)
+        dataset = KDDCupDataset(embedding_model=embedding_model)
+        dataset.create_fixed_samples(
+            *self.data, samples_num=1, partition_sizes=self.partition_sizes)
+        dataset.set_current_sample(0)
+        # Check build does not raise errors
+
+        model = KDDCupEmbeddedLSTMModel(
+            dataset, finetune_embeddings=False, embedding_model=embedding_model,
+            **self.model_arguments)
+        model.build_all()
+        resulting_embeddings = model.sess.run(model.embedding_var)
+        numpy.testing.assert_array_equal(resulting_embeddings[1:-1],
+                                         embedding_model.wv.syn0)
+        model.fit(training_epochs=50)
+        resulting_embeddings = model.sess.run(model.embedding_var)
+        numpy.testing.assert_array_equal(resulting_embeddings[1:-1],
+                                         embedding_model.wv.syn0)
+
     def test_predict(self):
         """Test if the LSTMModel returns consistent predictions."""
         # Check build does not raise errors
@@ -91,6 +117,10 @@ class KDDCupEmbeddedLSTMModelTest(unittest.TestCase):
         numpy.testing.assert_array_equal(resulting_embeddings[1:-1],
                                          embedding_model.wv.syn0)
         model.fit(training_epochs=50)
+        resulting_embeddings = model.sess.run(model.embedding_var)
+        # No fine tuning, so it should change the embedding var,
+        self.assertFalse(numpy.array_equal(resulting_embeddings[1:-1],
+                                           embedding_model.wv.syn0))
 
 
 if __name__ == '__main__':

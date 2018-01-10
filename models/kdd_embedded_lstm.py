@@ -33,7 +33,8 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
 
     def __init__(self, dataset, name=None, hidden_layer_size=0, batch_size=None,
                  logs_dirname='.', log_values=100, max_num_steps=100,
-                 dropout_ratio=0.3, embedding_size=100, embedding_model=None):
+                 dropout_ratio=0.3, embedding_size=100, embedding_model=None,
+                 finetune_embeddings=True):
         super(KDDCupEmbeddedLSTMModel, self).__init__(
             dataset, batch_size=batch_size, logs_dirname=logs_dirname,
             name=name, log_values=log_values, dropout_ratio=dropout_ratio,
@@ -41,6 +42,7 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         self.embedding_size = embedding_size
         self.embedding_var = None
         self.embedding_model = embedding_model
+        self.finetune_embeddings = finetune_embeddings
 
     def _build_inputs(self):
         """Generate placeholder variables to represent the input tensors."""
@@ -95,7 +97,7 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
                 name='embedding_placeholder')
             embedding_var = tf.Variable(tf.random_uniform(
                 embedding_matrix.shape, -1.0, 1.0),
-                name='input_embedding_var')
+                name='input_embedding_var', trainable=self.finetune_embeddings)
             self.embedding_init = embedding_var.assign(
                 self.embedding_placeholder)
             # We add the embedding for the zero element, which SHOULD be the

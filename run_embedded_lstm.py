@@ -43,6 +43,8 @@ def parse_arguments():
                              'embeddings.')
     parser.add_argument('--course_number', type=str,
                         help='Number of the course to identify predictions.')
+    parser.add_argument('--nofinetune', action='store_true',
+                        help='Do no change the pretrained embedding.')
 
     return parser.parse_args()
 
@@ -55,6 +57,7 @@ def read_configuration(args):
         'max_num_steps': args.max_num_steps,
         'dropout_ratio': args.dropout_ratio,
         'embedding_size': args.embedding_size,
+        'finetune_embeddings': not args.nofinetune
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config

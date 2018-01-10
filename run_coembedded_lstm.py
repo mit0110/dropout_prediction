@@ -41,6 +41,8 @@ def parse_arguments():
     parser.add_argument('--embedding_model', type=str, default=None,
                         help='Path to word2vec model to use as pretrained '
                              'embeddings.')
+    parser.add_argument('--nofinetune', action='store_true',
+                        help='Do no change the pretrained embedding.')
 
     return parser.parse_args()
 
@@ -52,6 +54,7 @@ def read_configuration(args):
         'log_values': args.log_values,
         'max_num_steps': args.max_num_steps,
         'dropout_ratio': args.dropout_ratio,
+        'finetune_embeddings': not args.nofinetune
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config
