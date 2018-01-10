@@ -32,6 +32,9 @@ class KDDCupDataset(SequenceDataset):
         self._maximums = None
         self.embedding_model = embedding_model
 
+    def classes_num(self, _=None):
+        return 2
+
     def create_fixed_samples(self, train_instances, train_labels,
                              test_instances, test_labels, samples_num,
                              partition_sizes):

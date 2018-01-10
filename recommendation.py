@@ -22,8 +22,8 @@ MODELS = {
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--base_logs_dirname', type=str, default=None,
-                        help='Path to directory with the tensorboard model')
+    parser.add_argument('--model_checkpoint', type=str, default=None,
+                        help='Path to checkpoint with the tensorboard model')
     parser.add_argument('--filename', type=str,
                         help='The path to the pickled file with the processed'
                              'evaluation sequences.')
@@ -43,9 +43,6 @@ def parse_arguments():
                              'embeddings.')
     parser.add_argument('--model_type', type=str, default='coembedded',
                         help='The type of model to use')
-    # parser.add_argument('--encoder', type=str,
-    #                     help='The path to the encoder file to get the largest '
-    #                           'possible suffix.')
 
     return parser.parse_args()
 
@@ -105,6 +102,8 @@ def get_instances_for_suffix(instances, suffix, possible_suffixes, labels):
 
 
 def evaluate_predictions(true, predictions, batch_size):
+    # Now we know the first len(possible_suffixes) predictions correspond
+    # to the first instance concatenated with all possible suffixes.
     assert true.shape[0] % batch_size == 0
     positive_rankings = []
     negative_rankings = []
@@ -113,17 +112,20 @@ def evaluate_predictions(true, predictions, batch_size):
         assert numpy.count_nonzero(batch_true) == 1
         batch_predicted = predictions[i: i+batch_size]
         true_instance_index = numpy.where(batch_true != 0)[0][0]
-        ranking = len(numpy.where(batch_predicted >=
+        ranking = len(numpy.where(batch_predicted <=
                                   batch_predicted[true_instance_index])[0])
         if batch_true[true_instance_index] < 0:
-            negative_rankings.append((ranking, batch_size))
+            negative_rankings.append(ranking)
+        elif batch_true[true_instance_index] > 0:
+            positive_rankings.append(ranking)
         else:
-            positive_rankings.append((ranking, batch_size))
-    return positive_rankings, negative_rankings
+            raise('True index has incorrect label 0. Should be 1 or -1')
+    print(numpy.mean(positive_rankings), numpy.mean(negative_rankings),
+          batch_size)
+    return positive_rankings, negative_rankings, batch_size
 
 
-def evaluate_prefix(prefix, suffix_dict, model, possible_suffixes):
-    results = []
+def get_prefix_instances(prefix, suffix_dict, possible_suffixes):
     eval_instances = []
     eval_labels = []
     for suffix, (instances, labels) in suffix_dict.items():
@@ -132,6 +134,10 @@ def evaluate_prefix(prefix, suffix_dict, model, possible_suffixes):
             instances, suffix, possible_suffixes, labels)
         eval_instances.extend(eval_suf_instances)
         eval_labels.extend(eval_suf_labels)
+    return eval_instances, eval_labels
+
+
+def get_predictions(eval_instances, eval_labels, model, checkpoint, max_id):
     print(len(eval_instances))
     dataset = KDDCupDataset(embedding_model=model.embedding_model)
     dataset.create_fixed_samples(
@@ -140,19 +146,16 @@ def evaluate_prefix(prefix, suffix_dict, model, possible_suffixes):
         numpy.array(eval_labels, dtype=numpy.int32),
         partition_sizes={'train': 1,'validation': 0, 'test': 1},
         samples_num=1)
+    dataset._maximums = max_id
     dataset.set_current_sample(0)
     model.dataset = dataset
     if model.graph is None:
         model.build_all()
+        model.load(checkpoint)
 
     # Obtain prediction. It is very important the dataset does not change
     # the order of the test partition
-    true, predictions = model.predict(partition_name='test')
-    # Now we know the first len(possible_suffixes) predictions correspond
-    # to the first instance concatenated with all possible suffixes.
-    results.append(evaluate_predictions(
-        true, predictions, len(possible_suffixes)))
-    return results
+    return model.predict(partition_name='test')
 
 
 def main():
@@ -160,9 +163,8 @@ def main():
     experiment_config = read_configuration(args)
 
     print('Reading dataset')
-    possible_suffixes, evaluation_instances = utils.pickle_from_file(
+    possible_suffixes, evaluation_instances, max_id = utils.pickle_from_file(
         args.filename)
-    # encoder = utils.pickle_from_file(args.encoder)
 
     print('Experiment Configuration')
     print(experiment_config)
@@ -173,11 +175,16 @@ def main():
     for suffix_length, prefix_dict in evaluation_instances.items():
         print('Evaluating suffixes with length {}'.format(suffix_length))
         for prefix, suffix_dict in tqdm(prefix_dict.items()):
-            results.extend(evaluate_prefix(prefix, suffix_dict, model,
-                                           possible_suffixes[suffix_length]))
+            instances, labels = get_prefix_instances(
+                prefix, suffix_dict, possible_suffixes[suffix_length])
+            true, predictions = get_predictions(
+                instances, labels, model, args.model_checkpoint, max_id)
+            print(predictions.min(), predictions.max())
+            results.append(evaluate_predictions(
+                true, predictions, len(possible_suffixes[suffix_length])))
 
-    print('Saving results')
-    utils.pickle_to_file(results, args.output_filename)
+        print('Saving results')
+        utils.pickle_to_file(results, args.output_filename)
     print('All operations completed')
 
 

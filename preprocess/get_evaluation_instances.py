@@ -114,9 +114,14 @@ def get_possible_ngrams(sequences, min_n, max_n):
     for size in range(min_n, max_n + 1):
         ngrams = get_ngram_positions(size, sequences)
         all_ngrams[size] = [ngram for ngram, occurrences in ngrams.items()
-                            if len(occurrences) >= size]
+                            if len(occurrences) >= 5]
         print('Suffixes with size {}: {}'.format(size, len(all_ngrams[size])))
     return all_ngrams
+
+
+def get_max_id(sequences):
+    return numpy.max([instance[:,0].max(axis=0) for instance in sequences],
+                      axis=0)
 
 
 def main():
@@ -132,12 +137,15 @@ def main():
                     N, test_labels, min_freq, test_sequences)
     else:
         train_sequences = raw_sequences[0]
-        possible_suffixes = get_possible_ngrams(train_sequences, 1, args.N - 1)
+        possible_suffixes = get_possible_ngrams(train_sequences, 1, args.N - 2)
+        max_id = get_max_id(
+            numpy.concatenate([train_sequences, test_sequences]))
         evaluation_instances = get_suffixes(
             args.N, test_labels, args.min_freq, test_sequences)
         if args.output_filename is not None:
-            utils.pickle_to_file([possible_suffixes, evaluation_instances],
-                                 args.output_filename)
+            utils.pickle_to_file(
+                [possible_suffixes, evaluation_instances, max_id],
+                args.output_filename)
     print('All operations completed')
 
 
