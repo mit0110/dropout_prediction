@@ -21,17 +21,16 @@ from sklearn.preprocessing import LabelEncoder
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--sequences_dirname', type=str,
-                        help='The path to the directory with the sequences csv '
-                             'files.')
+    parser.add_argument('--logs_dirname', type=str,
+                        help='Path to the directory with the log csv files.')
     parser.add_argument('--enrollments_dirname', type=str,
-                        help='The path to the directory with the enrollments '
+                        help='Path to the directory with the enrollments '
                              'csv files.')
     parser.add_argument('--labels_filename', type=str,
-                        help='The path to the csv file with the labels.')
-    parser.add_argument('--output_filename', type=str,
-                        help='The path to store the pickled sequences.')
-    parser.add_argument('--min_sequence_lenght', type=int, default=1,
+                        help='Path to the csv file with the labels.')
+    parser.add_argument('--output_directory', type=str,
+                        help='Path to directory to store the output sequences.')
+    parser.add_argument('--min_sequence_lenght', type=int, default=0,
                         help='Only include sequences with lenght grater than'
                              'this.')
     parser.add_argument('--merge', action='store_true',
@@ -58,12 +57,13 @@ EVENT_TYPE = ["problem", "video", "access", "wiki", "discussion",
 
 
 def read_logs(args):
-    sequences_files = get_input_filenames(args.sequences_dirname,
+    print('Reading logs')
+    sequences_files = get_input_filenames(args.logs_dirname,
                                           extension='csv')
     df_from_each_file = (pandas.read_csv(f, header=0, parse_dates=['time'],
                                          infer_datetime_format=True)
                          for f in sequences_files)
-    sequences = pandas.concat(df_from_each_file, ignore_index=True)
+    logs_df = pandas.concat(df_from_each_file, ignore_index=True)
 
     enrollment_files = get_input_filenames(args.enrollments_dirname, '.csv')
     df_from_each_file = (pandas.read_csv(f, header=0,
@@ -73,30 +73,50 @@ def read_logs(args):
 
     labels_df = pandas.read_csv(args.labels_filename,
                              names=['enrollment_id', 'dropout'])
-    sequences = sequences.merge(courses_df, on='enrollment_id', how='left')
-    sequences = sequences.merge(labels_df, on='enrollment_id', how='left')
+    logs_df = logs_df.merge(courses_df, on='enrollment_id', how='left')
+    logs_df = logs_df.merge(labels_df, on='enrollment_id', how='left')
+    print('Reading logs: finished')
+    return logs_df
 
-    return sequences
+
+def merge_objects(logs_df, merge=False):
+    module_id_encoder = LabelEncoder()
+    if merge:
+        logs_df.loc[:,'object'] = logs_df[['object', 'event']].apply(
+            lambda row: '-'.join([str(x) for x in row]), axis=1)
+    logs_df.loc[:,'object'] = module_id_encoder.fit_transform(logs_df['object'])
+    logs_df['object_pair'] = [x for x in zip(logs_df.object, logs_df.event)]
+    return logs_df, module_id_encoder
+
+
+def collect_sequences(logs_df):
+    return logs_df.groupby(
+        'enrollment_id')['object_pair'].apply(list)
 
 
 def get_sequences(logs_df, period_span):
     min_time = logs_df['time'].min()
-    logs_df['time_lapsed'] = logs_df['time'] - min_time
-    logs_df['days_lapsed'] = logs_df['time_lapsed'].apply(
+    logs_df.loc[:,'time_lapsed'] = logs_df['time'] - min_time
+    logs_df.loc[:,'days_lapsed'] = logs_df['time_lapsed'].apply(
         lambda date: date.days)
     max_day = logs_df['days_lapsed'].max()
-    for period_end in range(period_span, max_day, period_span):
+    period = 0
+    for period, period_end in enumerate(range(
+            period_span, max_day - period_span, period_span)):
         period_logs = logs_df[logs_df.days_lapsed <= period_end + period_span]
-        train_enrollments, test_enrollments = train_test_split(
-            period_logs['enrollment_id'])
-        train_period = period_logs[period_logs.days_lapsed <= period_end]
-        test_period = period_logs[period_logs.days_lapsed > period_end]
         labels = period_logs[['enrollment_id', 'days_lapsed']].groupby(
             'enrollment_id').max().rename(columns={'days_lapsed':'last_day'})
+        labels = (labels.last_day <= period_end).astype(int).to_frame()
+        train_period = period_logs[period_logs.days_lapsed <= period_end]
+        sequences = collect_sequences(train_period).to_frame()
+        yield period, sequences.merge(labels, left_index=True, right_index=True,
+                                      how='left')
 
-
-
-
+    complete_sequences = collect_sequences(logs_df).to_frame()
+    labels = logs_df[['enrollment_id', 'dropout']].drop_duplicates(
+        subset='enrollment_id', keep='last').set_index('enrollment_id')
+    yield period + 1, complete_sequences.merge(
+        labels, left_index=True, right_index=True, how='left')
 
 
 def main():
@@ -104,41 +124,41 @@ def main():
     logs_df = read_logs(args)
     event_encoder = LabelEncoder()
     event_encoder.fit(EVENT_TYPE)
-    logs_df['event'] = event_encoder.transform(logs_df['event'])
-
-    for course_id in logs_df.course_id.unique():
-        course_logs = logs_df[logs_df.course_id == course_id]
-        course_sequences = get_sequences(course_logs, args.period_span)
-    print('Processing {} sequences'.format(sequences.shape[0]))
-    if not args.merge:
-        row_process = lambda x: [x, x.split('-')[1]]
-    else:
-        row_process = lambda x: x.split('-')
-    sequences['sequence'] = sequences['sequence'].apply(
-        lambda x: numpy.array([row_process(word) for word in x.split(' ')]))
+    logs_df.loc[:,'event'] = event_encoder.transform(logs_df['event'])
 
     # Filter sequences by length
-    sequences['len'] = sequences['sequence'].apply(lambda x: x.shape[0])
-    sequences = sequences[sequences.len >= args.min_sequence_lenght]
+    if args.min_sequence_lenght > 0:
+        lens = logs_df.groupby('enrollment_id')[
+            'dropout'].count().rename(columns={'dropout': 'sequence_len'})
+        valid_enrollments = lens[lens > 5].index.values
+        print('Removing {} sequences'.format(
+            lens.shape[0] - valid_enrollments.shape[0]))
+        logs_df = logs_df[logs_df.enrollment_id.isin(valid_enrollments)]
 
-    module_id_encoder = LabelEncoder()
-    module_id_encoder.fit(numpy.concatenate(sequences.sequence.values)[:,0])
-    sequences['sequence'] = sequences['sequence'].apply(
-        lambda xarray: numpy.vstack([module_id_encoder.transform(xarray[:,0]),
-                                     event_encoder.transform(xarray[:,1])]).T)
+    for course_id in logs_df.course_id.unique():
+        print('Processing course {}'.format(course_id))
+        course_logs = logs_df[logs_df.course_id == course_id]
+        course_logs, encoder = merge_objects(course_logs, args.merge)
+        train_enrollments, test_enrollments = train_test_split(
+            course_logs['enrollment_id'].unique())
+        for period, sequences in get_sequences(course_logs, args.period_span):
+            train_sequences = sequences.loc[sequences.index.intersection(
+                train_enrollments).tolist()]
+            test_sequences = sequences.loc[sequences.index.intersection(
+                test_enrollments).tolist()]
+            print('Period{}, train {}, test {}'.format(
+                period, train_sequences.shape[0], test_sequences.shape[0]))
 
-    partitions = train_test_split(
-        sequences.sequence.values, sequences.label.values,
-        test_size=0.2, random_state=42)
-    print('Training size: {}. Testing_size: {}'.format(partitions[0].shape[0],
-                                                       partitions[1].shape[0]))
-    print('Saving sequences')
-    utils.pickle_to_file(partitions, args.output_filename)
-    print('Saving encoder')
-    merged = '-merged' if args.merge else ''
-    utils.pickle_to_file(
-        module_id_encoder,
-        '.'.join(args.output_filename.split('.')[:-1]) + merged + '-encoder.p')
+            filename = 'c{}_span{}_period{}{}.p'.format(
+                course_id, args.period_span, period,
+                '_merged' if args.merge else '')
+            utils.pickle_to_file(
+                (train_sequences, test_sequences),
+                os.path.join(args.output_directory, filename))
+
+        utils.pickle_to_file(encoder, os.path.join(
+            args.output_directory, 'c{}_span{}_encoder{}.p'.format(
+                course_id, args.period_span, '_merged' if args.merge else '')))
     print('All operations completed')
 
 
