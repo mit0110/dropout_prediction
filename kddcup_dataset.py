@@ -58,6 +58,12 @@ class KDDCupDataset(SequenceDataset):
         assert train_instances.shape[0] == train_labels.shape[0]
         assert test_instances.shape[0] == test_labels.shape[0]
 
+        if not isinstance(train_instances[0], numpy.ndarray):
+            train_instances = numpy.array([numpy.array(x)
+                                           for x in train_instances])
+            test_instances = numpy.array([numpy.array(x)
+                                           for x in test_instances])
+
         self.samples_num = samples_num
         self._sample_indices = [
             dict.fromkeys(partition_sizes) for _ in range(samples_num)]
