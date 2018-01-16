@@ -135,6 +135,7 @@ def main():
             lens.shape[0] - valid_enrollments.shape[0]))
         logs_df = logs_df[logs_df.enrollment_id.isin(valid_enrollments)]
 
+    merged_str =  '_merged' if args.merge else ''
     for course_id in logs_df.course_id.unique():
         print('Processing course {}'.format(course_id))
         course_logs = logs_df[logs_df.course_id == course_id]
@@ -142,6 +143,8 @@ def main():
         train_enrollments, test_enrollments = train_test_split(
             course_logs['enrollment_id'].unique())
         for period, sequences in get_sequences(course_logs, args.period_span):
+            sequences = sequences.rename(
+                columns={'last_day': 'dropout', 'object_pair': 'sequence'})
             train_sequences = sequences.loc[sequences.index.intersection(
                 train_enrollments).tolist()]
             test_sequences = sequences.loc[sequences.index.intersection(
@@ -150,15 +153,14 @@ def main():
                 period, train_sequences.shape[0], test_sequences.shape[0]))
 
             filename = 'c{}_span{}_period{}{}.p'.format(
-                course_id, args.period_span, period,
-                '_merged' if args.merge else '')
+                int(course_id), args.period_span, period, merged_str)
             utils.pickle_to_file(
                 (train_sequences, test_sequences),
                 os.path.join(args.output_directory, filename))
 
         utils.pickle_to_file(encoder, os.path.join(
             args.output_directory, 'c{}_span{}_encoder{}.p'.format(
-                course_id, args.period_span, '_merged' if args.merge else '')))
+                int(course_id), args.period_span, merged_str)))
     print('All operations completed')
 
 
