@@ -5,10 +5,14 @@ import unittest
 
 from gensim.models import Word2Vec
 from kddcup_dataset import KDDCupDataset
-from models.kdd_coembedded_lstm import KDDCupCoEmbeddedLSTMModel
+from models.kdd_coembedded_lstm import (
+    KDDCupCoEmbeddedLSTMModel, KDDCupCoEmbeddedLSTMModel2)
 
 
 class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
+
+    MODEL = KDDCupCoEmbeddedLSTMModel
+
     def setUp(self):
         tf.reset_default_graph()
         num_examples = 100
@@ -40,7 +44,7 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
         dataset.create_fixed_samples(
             *self.data, samples_num=1, partition_sizes=self.partition_sizes)
         dataset.set_current_sample(0)
-        model = KDDCupCoEmbeddedLSTMModel(dataset, **self.model_arguments)
+        model = self.MODEL(dataset, **self.model_arguments)
         model.fit(close_session=True, training_epochs=50)
 
     def test_predict(self):
@@ -50,7 +54,7 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
         dataset.create_fixed_samples(
             *self.data, samples_num=1, partition_sizes=self.partition_sizes)
         dataset.set_current_sample(0)
-        model = KDDCupCoEmbeddedLSTMModel(dataset, **self.model_arguments)
+        model = self.MODEL(dataset, **self.model_arguments)
         model.fit(training_epochs=50)
         true, predictions = model.predict('test')
         expected_size = ((dataset.num_examples('test') //
@@ -65,7 +69,7 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
         dataset.create_fixed_samples(
             *self.data, samples_num=1, partition_sizes=self.partition_sizes)
         dataset.set_current_sample(0)
-        model = KDDCupCoEmbeddedLSTMModel(dataset, **self.model_arguments)
+        model = self.MODEL(dataset, **self.model_arguments)
         model.fit(training_epochs=50)
         metric = model.evaluate('test')
         self.assertLessEqual(0, metric)
@@ -88,7 +92,7 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
             *self.data, samples_num=1, partition_sizes=self.partition_sizes)
         dataset.set_current_sample(0)
         # Check build does not raise errors
-        model = KDDCupCoEmbeddedLSTMModel(
+        model = self.MODEL(
             dataset, embedding_model=embedding_model,
             **self.model_arguments)
         model.build_all()
@@ -96,6 +100,11 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
         numpy.testing.assert_array_equal(resulting_embeddings[1:-1],
                                          embedding_model.wv.syn0)
         model.fit(training_epochs=50)
+
+
+class KDDCupCoEmbeddedLSTMModelTest2(KDDCupCoEmbeddedLSTMModelTest):
+
+    MODEL = KDDCupCoEmbeddedLSTMModel2
 
 
 if __name__ == '__main__':

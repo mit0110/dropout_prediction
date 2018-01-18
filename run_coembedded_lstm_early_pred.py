@@ -7,7 +7,8 @@ import tensorflow as tf
 
 from kddcup_dataset import KDDCupDataset
 from quick_experiment import utils
-from models.kdd_coembedded_lstm import KDDCupCoEmbeddedLSTMModel
+from models.kdd_coembedded_lstm import (
+    KDDCupCoEmbeddedLSTMModel, KDDCupCoEmbeddedLSTMModel2)
 
 
 def parse_arguments():
@@ -39,8 +40,18 @@ def parse_arguments():
                              'layer.')
     parser.add_argument('--course_number', type=str,
                         help='Number of the course to identify predictions.')
+    parser.add_argument('--model', type=str, default='abs',
+                        help='Name of the model to run. The variation is in the'
+                             'difference function between co-embeddings. '
+                             'Possible values are abs and square.')
 
     return parser.parse_args()
+
+
+MODELS = {
+    'abs': KDDCupCoEmbeddedLSTMModel,
+    'square': KDDCupCoEmbeddedLSTMModel2
+}
 
 
 def read_configuration(args):
@@ -91,7 +102,7 @@ def evaluate_period(args, experiment_config, kddcup_dataset, period):
                 'c{}_p{}_run{}'.format(args.course_number, period, run))
             utils.safe_mkdir(logs_dirname)
             experiment_config['logs_dirname'] = logs_dirname
-        model = KDDCupCoEmbeddedLSTMModel(kddcup_dataset, **experiment_config)
+        model = MODELS[args.model](kddcup_dataset, **experiment_config)
         model.fit(partition_name='train',
                   training_epochs=args.training_epochs, close_session=False)
 

@@ -33,8 +33,10 @@ class EmbeddedBasicLSTMCell(tf.contrib.rnn.BasicLSTMCell):
             c, h = state
         else:
             raise ValueError('EmbeddedBasicLSTMCell must use a state tuple')
-        # TODO if self.modifier_function is not None:
-        inputs = tf.abs(tf.subtract(inputs, h))
+        if self.modifier_function is not None:
+            inputs = self.modifier_function(inputs, h)
+        else:
+            inputs = tf.abs(tf.subtract(inputs, h))
         return super(EmbeddedBasicLSTMCell, self).call(inputs, state)
 
 
@@ -57,3 +59,22 @@ class KDDCupCoEmbeddedLSTMModel(KDDCupEmbeddedLSTMModel):
         return EmbeddedBasicLSTMCell(self.hidden_layer_size, forget_bias=1.0)
 
 
+class KDDCupCoEmbeddedLSTMModel2(KDDCupEmbeddedLSTMModel):
+    """A Recurrent Neural Network model with LSTM cells.
+
+    Predicts the probability of the next element on the sequence. The
+    input is first passed by an embedding layer to reduce dimensionality.
+
+    The embedded layer is combined with the hidden state of the recurrent
+    network before entering the hidden layer. The embedding_size will be the
+    same as the hidden layer size.
+    """
+    def __init__(self, dataset, hidden_layer_size=0, **kwargs):
+        super(KDDCupCoEmbeddedLSTMModel2, self).__init__(
+            dataset, hidden_layer_size=hidden_layer_size,
+            embedding_size=hidden_layer_size, **kwargs)
+
+    def _build_rnn_cell(self):
+        return EmbeddedBasicLSTMCell(
+            self.hidden_layer_size, forget_bias=1.0,
+            modifier_function=lambda i, h: tf.square(tf.subtract(i, h)))
