@@ -41,7 +41,7 @@ def parse_arguments():
                         help='Number of units in the embedding layer.')
     parser.add_argument('--course_number', type=str,
                         help='Number of the course to identify predictions.')
-    parser.add_argument('--model', type=str, default='lstm',
+    parser.add_argument('--model', type=str, default='elstm',
                         help='Name of the model to run. The variation is in the'
                              'difference function between co-embeddings. '
                              'Possible values are elstm and ebilstm.')

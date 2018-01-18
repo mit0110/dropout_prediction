@@ -45,7 +45,7 @@ def parse_arguments():
                         help='Number of the course to identify predictions.')
     parser.add_argument('--nofinetune', action='store_true',
                         help='Do no change the pretrained embedding.')
-    parser.add_argument('--model', type=str, default='lstm',
+    parser.add_argument('--model', type=str, default='elstm',
                         help='Name of the model to run. The variation is in the'
                              'difference function between co-embeddings. '
                              'Possible values are elstm and ebilstm.')
