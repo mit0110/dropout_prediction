@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from kddcup_dataset import KDDCupDataset
 from quick_experiment import utils
-from models.kdd_lstm import KDDCupLSTMModel
+from models.kdd_lstm import KDDCupLSTMModel, KDDCupBiLSTMModel
 
 
 def parse_arguments():
@@ -36,8 +36,18 @@ def parse_arguments():
                              'layer.')
     parser.add_argument('--course_number', type=str,
                         help='Number of the course to identify predictions.')
+    parser.add_argument('--model', type=str, default='lstm',
+                        help='Name of the model to run. The variation is in the'
+                             'difference function between co-embeddings. '
+                             'Possible values are lstm and bilstm.')
 
     return parser.parse_args()
+
+
+MODELS = {
+    'lstm': KDDCupLSTMModel,
+    'bilstm': KDDCupBiLSTMModel
+}
 
 
 def read_configuration(args):
@@ -46,7 +56,8 @@ def read_configuration(args):
         'batch_size': args.batch_size,
         'log_values': args.log_values,
         'max_num_steps': args.max_num_steps,
-        'dropout_ratio': args.dropout_ratio
+        'dropout_ratio': args.dropout_ratio,
+        'name': args.model
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config
@@ -86,7 +97,7 @@ def main():
                 'c{}_run{}'.format(args.course_number, run))
             utils.safe_mkdir(logs_dirname)
             experiment_config['logs_dirname'] = logs_dirname
-        model = KDDCupLSTMModel(kddcup_dataset, **experiment_config)
+        model = MODELS[args.model](kddcup_dataset, **experiment_config)
         model.fit(partition_name='train',
                   training_epochs=args.training_epochs,
                   close_session=False)

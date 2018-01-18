@@ -6,7 +6,7 @@ import tensorflow as tf
 from gensim.models import Word2Vec
 from kddcup_dataset import KDDCupDataset
 from quick_experiment import utils
-from models.kdd_embedded_lstm import KDDCupEmbeddedLSTMModel
+from models import kdd_embedded_lstm
 
 
 def parse_arguments():
@@ -45,8 +45,18 @@ def parse_arguments():
                         help='Number of the course to identify predictions.')
     parser.add_argument('--nofinetune', action='store_true',
                         help='Do no change the pretrained embedding.')
+    parser.add_argument('--model', type=str, default='lstm',
+                        help='Name of the model to run. The variation is in the'
+                             'difference function between co-embeddings. '
+                             'Possible values are elstm and ebilstm.')
 
     return parser.parse_args()
+
+
+MODELS = {
+    'elstm': kdd_embedded_lstm.KDDCupEmbeddedLSTMModel,
+    'ebilstm': kdd_embedded_lstm.KDDCupEmbedBiLSTMModel,
+}
 
 
 def read_configuration(args):
@@ -57,7 +67,8 @@ def read_configuration(args):
         'max_num_steps': args.max_num_steps,
         'dropout_ratio': args.dropout_ratio,
         'embedding_size': args.embedding_size,
-        'finetune_embeddings': not args.nofinetune
+        'finetune_embeddings': not args.nofinetune,
+        'name': args.model,
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config
@@ -118,7 +129,7 @@ def main():
             utils.safe_mkdir(logs_dirname)
             experiment_config['logs_dirname'] = logs_dirname
 
-        model = KDDCupEmbeddedLSTMModel(
+        model = MODELS[args.model](
             kddcup_dataset, embedding_model=embedding_model,
             **experiment_config)
 

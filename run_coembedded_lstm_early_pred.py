@@ -7,8 +7,7 @@ import tensorflow as tf
 
 from kddcup_dataset import KDDCupDataset
 from quick_experiment import utils
-from models.kdd_coembedded_lstm import (
-    KDDCupCoEmbeddedLSTMModel, KDDCupCoEmbeddedLSTMModel2)
+from models import kdd_coembedded_lstm
 
 
 def parse_arguments():
@@ -43,14 +42,17 @@ def parse_arguments():
     parser.add_argument('--model', type=str, default='abs',
                         help='Name of the model to run. The variation is in the'
                              'difference function between co-embeddings. '
-                             'Possible values are abs and square.')
+                             'Possible values are abs, square, biabs and '
+                             'bisquare.')
 
     return parser.parse_args()
 
 
 MODELS = {
-    'abs': KDDCupCoEmbeddedLSTMModel,
-    'square': KDDCupCoEmbeddedLSTMModel2
+    'abs': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel,
+    'square': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel2,
+    'biabs': kdd_coembedded_lstm.KDDCupCoEmbedBiLSTMModel,
+    'bisquare': kdd_coembedded_lstm.KDDCupCoEmbedBiLSTMModel2
 }
 
 
@@ -61,7 +63,8 @@ def read_configuration(args):
         'log_values': args.log_values,
         'max_num_steps': args.max_num_steps,
         'dropout_ratio': args.dropout_ratio,
-        'embedding_model': None
+        'embedding_model': None,
+        'name': args.model,
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config

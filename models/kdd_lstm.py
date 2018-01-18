@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 from quick_experiment.models.lstm import LSTMModel
+from quick_experiment.models.bi_lstm import BiLSTMModel
 from quick_experiment.models.lstm_tbptt import TruncLSTMModel
 
 
@@ -135,3 +136,7 @@ class TruncKDDCupLSTMModel(KDDCupLSTMModel, TruncLSTMModel):
             mse_value = self.sess.run([mse_op])[0]
         self.dataset.reset_batch(partition, old_start)
         return mse_value
+
+
+class KDDCupBiLSTMModel(KDDCupLSTMModel, BiLSTMModel):
+    pass

@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+from quick_experiment.models.bi_lstm import BiLSTMModel
 from models.kdd_embedded_lstm import KDDCupEmbeddedLSTMModel
 from tensorflow.python.ops.math_ops import tanh
 
@@ -78,3 +79,23 @@ class KDDCupCoEmbeddedLSTMModel2(KDDCupEmbeddedLSTMModel):
         return EmbeddedBasicLSTMCell(
             self.hidden_layer_size, forget_bias=1.0,
             modifier_function=lambda i, h: tf.square(tf.subtract(i, h)))
+
+
+class KDDCupCoEmbedBiLSTMModel(KDDCupCoEmbeddedLSTMModel, BiLSTMModel):
+    def _build_rnn_cell(self):
+        return (
+            EmbeddedBasicLSTMCell(self.hidden_layer_size, forget_bias=1.0),
+            tf.contrib.rnn.BasicLSTMCell(self.hidden_layer_size,
+                                         forget_bias=1.0)
+        )
+
+
+class KDDCupCoEmbedBiLSTMModel2(KDDCupCoEmbeddedLSTMModel2, BiLSTMModel):
+    def _build_rnn_cell(self):
+        return (
+            EmbeddedBasicLSTMCell(
+                self.hidden_layer_size, forget_bias=1.0,
+                modifier_function=lambda i, h: tf.square(tf.subtract(i, h))),
+            tf.contrib.rnn.BasicLSTMCell(self.hidden_layer_size,
+                                         forget_bias=1.0)
+        )

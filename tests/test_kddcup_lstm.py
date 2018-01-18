@@ -4,7 +4,8 @@ import tensorflow as tf
 import unittest
 
 from kddcup_dataset import KDDCupDataset
-from models.kdd_lstm import KDDCupLSTMModel, TruncKDDCupLSTMModel
+from models.kdd_lstm import (KDDCupLSTMModel, TruncKDDCupLSTMModel,
+                             KDDCupBiLSTMModel)
 
 
 class KDDCupLSTMModelTest(unittest.TestCase):
@@ -69,6 +70,10 @@ class KDDCupLSTMModelTest(unittest.TestCase):
 
 class TruncKDDCupLSTMModelTest(KDDCupLSTMModelTest):
     MODEL_TO_TEST = TruncKDDCupLSTMModel
+
+
+class KDDCupBiLSTMModelTest(KDDCupLSTMModelTest):
+    MODEL_TO_TEST = KDDCupBiLSTMModel
 
 
 if __name__ == '__main__':

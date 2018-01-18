@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+from quick_experiment.models.bi_lstm import BiLSTMModel
 from models.kdd_lstm import KDDCupLSTMModel
 
 
@@ -31,18 +32,14 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
             embedding variable with the weights of the model.
     """
 
-    def __init__(self, dataset, name=None, hidden_layer_size=0, batch_size=None,
-                 logs_dirname='.', log_values=100, max_num_steps=100,
-                 dropout_ratio=0.3, embedding_size=100, embedding_model=None,
-                 finetune_embeddings=True):
+    def __init__(self, dataset, embedding_size=100, embedding_model=None,
+                 finetune_embeddings=True, **kwargs):
         super(KDDCupEmbeddedLSTMModel, self).__init__(
-            dataset, batch_size=batch_size, logs_dirname=logs_dirname,
-            name=name, log_values=log_values, dropout_ratio=dropout_ratio,
-            hidden_layer_size=hidden_layer_size, max_num_steps=max_num_steps)
+            dataset, **kwargs)
         self.embedding_size = embedding_size
-        self.embedding_var = None
         self.embedding_model = embedding_model
         self.finetune_embeddings = finetune_embeddings
+        self.embedding_var = None
 
     def _build_inputs(self):
         """Generate placeholder variables to represent the input tensors."""
@@ -116,3 +113,7 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         if self.embedding_model is not None:
             with self.graph.as_default():
                 self.sess.run([self.embedding_init])
+
+
+class KDDCupEmbedBiLSTMModel(KDDCupEmbeddedLSTMModel, BiLSTMModel):
+    pass

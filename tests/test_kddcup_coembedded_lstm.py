@@ -6,7 +6,8 @@ import unittest
 from gensim.models import Word2Vec
 from kddcup_dataset import KDDCupDataset
 from models.kdd_coembedded_lstm import (
-    KDDCupCoEmbeddedLSTMModel, KDDCupCoEmbeddedLSTMModel2)
+    KDDCupCoEmbeddedLSTMModel, KDDCupCoEmbeddedLSTMModel2,
+    KDDCupCoEmbedBiLSTMModel, KDDCupCoEmbedBiLSTMModel2)
 
 
 class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
@@ -105,6 +106,16 @@ class KDDCupCoEmbeddedLSTMModelTest(unittest.TestCase):
 class KDDCupCoEmbeddedLSTMModelTest2(KDDCupCoEmbeddedLSTMModelTest):
 
     MODEL = KDDCupCoEmbeddedLSTMModel2
+
+
+class KDDCupCoEmbedBiLSTMModelTest(KDDCupCoEmbeddedLSTMModelTest):
+
+    MODEL = KDDCupCoEmbedBiLSTMModel
+
+
+class KDDCupCoEmbedBiLSTMModelTest2(KDDCupCoEmbeddedLSTMModelTest):
+
+    MODEL = KDDCupCoEmbedBiLSTMModel2
 
 
 if __name__ == '__main__':
