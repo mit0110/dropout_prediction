@@ -3,6 +3,8 @@ import tensorflow as tf
 from quick_experiment.models.bi_lstm import BiLSTMModel
 from models.kdd_lstm import KDDCupLSTMModel
 
+from tensorflow.contrib.tensorboard.plugins import projector
+
 
 class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
     """A Recurrent Neural Network model with LSTM cells.
@@ -79,8 +81,6 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         Returns:
             A tensor with shape [batch_size, max_num_steps, self.embedding_size]
         """
-        # The sequences must be padded with a negative value, so the one
-        # hot encoder generates a zero vector.
         if self.embedding_model is None:
             self.embedding_var = tf.Variable(
                 tf.random_uniform([self.dataset.maximums + 1,
@@ -113,6 +113,20 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
         if self.embedding_model is not None:
             with self.graph.as_default():
                 self.sess.run([self.embedding_init])
+
+    def write_embeddings(self, metadata_path):
+        with self.graph.as_default():
+            config = projector.ProjectorConfig()
+
+            # Add positive embedding
+            embedding = config.embeddings.add()
+            embedding.tensor_name = self.model.embedding_var.name
+            # Link this tensor to the same metadata file
+            embedding.metadata_path = metadata_path
+
+            # Saves a configuration file that TensorBoard will read
+            # during startup.
+            projector.visualize_embeddings(self.summary_writer, config)
 
 
 class KDDCupEmbedBiLSTMModel(KDDCupEmbeddedLSTMModel, BiLSTMModel):
