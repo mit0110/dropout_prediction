@@ -43,6 +43,8 @@ def parse_arguments():
                              'embeddings.')
     parser.add_argument('--nofinetune', action='store_true',
                         help='Do no change the pretrained embedding.')
+    parser.add_argument('--log_gradients', action='store_true',
+                        help='Log gradients and learning rate.')
     parser.add_argument('--model', type=str, default='abs',
                         help='Name of the model to run. The variation is in the'
                              'difference function between co-embeddings. '
@@ -69,6 +71,7 @@ def read_configuration(args):
         'dropout_ratio': args.dropout_ratio,
         'finetune_embeddings': not args.nofinetune,
         'name': args.model,
+        'log_gradients': args.log_gradients,
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config
