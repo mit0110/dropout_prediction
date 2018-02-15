@@ -120,7 +120,7 @@ class KDDCupEmbeddedLSTMModel(KDDCupLSTMModel):
 
             # Add positive embedding
             embedding = config.embeddings.add()
-            embedding.tensor_name = self.model.embedding_var.name
+            embedding.tensor_name = self.embedding_var.name
             # Link this tensor to the same metadata file
             embedding.metadata_path = metadata_path
 
