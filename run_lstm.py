@@ -36,6 +36,8 @@ def parse_arguments():
                              'layer.')
     parser.add_argument('--course_number', type=str,
                         help='Number of the course to identify predictions.')
+    parser.add_argument('--learning_rate', type=float, default=0.001,
+                        help='Learning rate.')
     parser.add_argument('--model', type=str, default='lstm',
                         help='Name of the model to run. The variation is in the'
                              'difference function between co-embeddings. '
@@ -57,7 +59,8 @@ def read_configuration(args):
         'log_values': args.log_values,
         'max_num_steps': args.max_num_steps,
         'dropout_ratio': args.dropout_ratio,
-        'name': args.model
+        'name': args.model,
+        'learning_rate': args.learning_rate,
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config

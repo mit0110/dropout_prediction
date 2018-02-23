@@ -45,6 +45,8 @@ def parse_arguments():
                         help='Do no change the pretrained embedding.')
     parser.add_argument('--log_gradients', action='store_true',
                         help='Log gradients and learning rate.')
+    parser.add_argument('--learning_rate', type=float, default=0.001,
+                        help='Learning rate.')
     parser.add_argument('--model', type=str, default='abs',
                         help='Name of the model to run. The variation is in the'
                              'difference function between co-embeddings. '
@@ -72,6 +74,7 @@ def read_configuration(args):
         'finetune_embeddings': not args.nofinetune,
         'name': args.model,
         'log_gradients': args.log_gradients,
+        'learning_rate': args.learning_rate,
     }
     dataset_config = {'train': 0.85, 'test': 1, 'validation': 0.15}
     return config, dataset_config
