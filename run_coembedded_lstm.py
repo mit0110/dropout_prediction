@@ -59,6 +59,8 @@ def parse_arguments():
 MODELS = {
     'abs': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel,
     'square': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel2,
+    'norm': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel3,
+    'norm-fixed': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel4,
     'biabs': kdd_coembedded_lstm.KDDCupCoEmbedBiLSTMModel,
     'bisquare': kdd_coembedded_lstm.KDDCupCoEmbedBiLSTMModel2
 }

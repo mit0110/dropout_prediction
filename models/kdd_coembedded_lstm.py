@@ -99,3 +99,52 @@ class KDDCupCoEmbedBiLSTMModel2(KDDCupCoEmbeddedLSTMModel2, BiLSTMModel):
             tf.contrib.rnn.BasicLSTMCell(self.hidden_layer_size,
                                          forget_bias=1.0)
         )
+
+
+class KDDCupCoEmbeddedLSTMModel3(KDDCupCoEmbeddedLSTMModel):
+    """A Recurrent Neural Network model with LSTM cells.
+
+    Predicts the probability of the next element on the sequence. The
+    input is first passed by an embedding layer to reduce dimensionality.
+
+    The embedded layer is combined with the hidden state of the recurrent
+    network before entering the hidden layer. The embedding_size will be the
+    same as the hidden layer size.
+    """
+
+    def _build_rnn_cell(self):
+        # We define a new variable for the standard deviation of the normal
+        # distribution
+        std_var = tf.Variable(1.0, name='normal_std', trainable=True)
+        tf.summary.scalar('normal_std', std_var)
+        dist = tf.distributions.Normal(loc=0.0, scale=std_var)
+
+        def modifier_function(input, state):
+            return dist.prob(tf.subtract(input, state))
+
+        return EmbeddedBasicLSTMCell(
+            self.hidden_layer_size, forget_bias=1.0,
+            modifier_function=modifier_function)
+
+
+class KDDCupCoEmbeddedLSTMModel4(KDDCupCoEmbeddedLSTMModel):
+    """A Recurrent Neural Network model with LSTM cells.
+
+    Predicts the probability of the next element on the sequence. The
+    input is first passed by an embedding layer to reduce dimensionality.
+
+    The embedded layer is combined with the hidden state of the recurrent
+    network before entering the hidden layer. The embedding_size will be the
+    same as the hidden layer size.
+    """
+
+    def _build_rnn_cell(self):
+        # We define a new variable for the standard deviation of the normal
+        # distribution
+        dist = tf.distributions.Normal(loc=0.0, scale=2.0)
+
+        def modifier_function(input, state):
+            return dist.prob(tf.subtract(input, state))
+
+        return EmbeddedBasicLSTMCell(
+            self.hidden_layer_size, modifier_function=modifier_function)
