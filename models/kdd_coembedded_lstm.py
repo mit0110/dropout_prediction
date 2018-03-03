@@ -141,7 +141,7 @@ class KDDCupCoEmbeddedLSTMModel4(KDDCupCoEmbeddedLSTMModel):
     def _build_rnn_cell(self):
         # We define a new variable for the standard deviation of the normal
         # distribution
-        dist = tf.distributions.Normal(loc=0.0, scale=2.0)
+        dist = tf.distributions.Normal(loc=0.0, scale=0.5)
 
         def modifier_function(input, state):
             return dist.prob(tf.subtract(input, state))
