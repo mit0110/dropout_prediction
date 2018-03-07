@@ -148,3 +148,36 @@ class KDDCupCoEmbeddedLSTMModel4(KDDCupCoEmbeddedLSTMModel):
 
         return EmbeddedBasicLSTMCell(
             self.hidden_layer_size, modifier_function=modifier_function)
+
+
+class KDDCupCoEmbeddedLSTMModel5(KDDCupCoEmbeddedLSTMModel):
+    """A Recurrent Neural Network model with LSTM cells.
+
+    Predicts the probability of the next element on the sequence. The
+    input is first passed by an embedding layer to reduce dimensionality.
+
+    The embedded layer is combined with the hidden state of the recurrent
+    network before entering the hidden layer. The embedding_size will be the
+    same as the hidden layer size.
+    """
+    def _build_rnn_cell(self):
+        return EmbeddedBasicLSTMCell(
+            self.hidden_layer_size,
+            modifier_function=lambda i, h: tf.tanh(tf.subtract(i, h)))
+
+
+class KDDCupCoEmbeddedLSTMModel6(KDDCupCoEmbeddedLSTMModel):
+    """A Recurrent Neural Network model with LSTM cells.
+
+    Predicts the probability of the next element on the sequence. The
+    input is first passed by an embedding layer to reduce dimensionality.
+
+    The embedded layer is combined with the hidden state of the recurrent
+    network before entering the hidden layer. The embedding_size will be the
+    same as the hidden layer size.
+    """
+    def _build_rnn_cell(self):
+        return EmbeddedBasicLSTMCell(
+            self.hidden_layer_size,
+            modifier_function=lambda i, h: tf.sigmoid(tf.subtract(i, h)))
+

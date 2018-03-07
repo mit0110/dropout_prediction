@@ -52,7 +52,11 @@ MODELS = {
     'abs': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel,
     'square': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel2,
     'biabs': kdd_coembedded_lstm.KDDCupCoEmbedBiLSTMModel,
-    'bisquare': kdd_coembedded_lstm.KDDCupCoEmbedBiLSTMModel2
+    'bisquare': kdd_coembedded_lstm.KDDCupCoEmbedBiLSTMModel2,
+    'norm': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel3,
+    'norm-fixed': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel4,
+    'tanh': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel5,
+    'sigm': kdd_coembedded_lstm.KDDCupCoEmbeddedLSTMModel6,
 }
 
 
