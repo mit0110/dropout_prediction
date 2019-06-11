@@ -1,0 +1,6 @@
+dark_blue = '#473198'
+light_blue = '#cce6f4'
+purple = '#7d5ba6'
+light_green = '#acfcd9ff'
+dark_green = '#00cf76'
+red = '#ff5d5d'
